@@ -1,112 +1,134 @@
-from random import randrange
-from copy import deepcopy
+#!/usr/bin/python3
+"""Solves the N-queens puzzle.
+Determines all possible solutions to placing N
+N non-attacking queens on an NxN chessboard.
+Example:
+    $ ./101-nqueens.py N
+N must be an integer greater than or equal to 4.
+Attributes:
+    board (list): A list of lists representing the chessboard.
+    solutions (list): A list of lists containing solutions.
+Solutions are represented in the format [[r, c], [r, c], [r, c], [r, c]]
+where `r` and `c` represent the row and column, respectively, where a
+queen must be placed on the chessboard.
+"""
+import sys
 
-# Take number of queens as Input from the user
-N = int(input('Enter the number of Queens:\n'));
+
+def init_board(n):
+    """Initialize an `n`x`n` sized chessboard with 0's."""
+    board = []
+    [board.append([]) for i in range(n)]
+    [row.append(' ') for i in range(n) for row in board]
+    return (board)
 
 
-# Initialize the class for board and its attributes
-class QueensState:
-    instance_counter = 0
+def board_deepcopy(board):
+    """Return a deepcopy of a chessboard."""
+    if isinstance(board, list):
+        return list(map(board_deepcopy, board))
+    return (board)
 
-    # class queenstate initialization
-    def __init__(self, queen_positions=None, queen_num=N, parent=None, path_cost=0, f_cost=0, side_length=N):
-        self.side_length = side_length
-        if queen_positions is None:
-            self.queen_num = queen_num
-            self.queen_positions = frozenset(self.random_queen_position())
-        else:
-            self.queen_positions = frozenset(queen_positions)
-            self.queen_num = len(self.queen_positions)
 
-        self.path_cost = 0
-        self.f_cost = f_cost
-        self.parent = parent
-        self.id = QueensState.instance_counter
-        QueensState.instance_counter += 1
+def get_solution(board):
+    """Return the list of lists representation of a solved chessboard."""
+    solution = []
+    for r in range(len(board)):
+        for c in range(len(board)):
+            if board[r][c] == "Q":
+                solution.append([r, c])
+                break
+    return (solution)
 
-    # Set all N queens at random position on the board
-    # Returns list of tuples with the queen coordinates
-    def random_queen_position(self):
-        # Each queen is placed in a random row in a separate column
-        open_columns = list(range(self.side_length))
-        queen_positions = [(open_columns.pop(randrange(len(open_columns))), randrange(self.side_length)) for _ in
-                           range(self.queen_num)]
-        return queen_positions
 
-    # Returns all the possible moves(children) of the current state
-    def get_children(self):
-        children = []
-        parent_queen_positions = list(self.queen_positions)
-        for queen_index, queen in enumerate(parent_queen_positions):
-            new_positions = [(queen[0], row) for row in range(self.side_length) if row != queen[1]]
-            for new_position in new_positions:
-                queen_positions = deepcopy(parent_queen_positions)
-                queen_positions[queen_index] = new_position
-                children.append(QueensState(queen_positions))
-        return children
+def xout(board, row, col):
+    """X out spots on a chessboard.
+    All spots where non-attacking queens can no
+    longer be played are X-ed out.
+    Args:
+        board (list): The current working chessboard.
+        row (int): The row where a queen was last played.
+        col (int): The column where a queen was last played.
+    """
+    # X out all forward spots
+    for c in range(col + 1, len(board)):
+        board[row][c] = "x"
+    # X out all backwards spots
+    for c in range(col - 1, -1, -1):
+        board[row][c] = "x"
+    # X out all spots below
+    for r in range(row + 1, len(board)):
+        board[r][col] = "x"
+    # X out all spots above
+    for r in range(row - 1, -1, -1):
+        board[r][col] = "x"
+    # X out all spots diagonally down to the right
+    c = col + 1
+    for r in range(row + 1, len(board)):
+        if c >= len(board):
+            break
+        board[r][c] = "x"
+        c += 1
+    # X out all spots diagonally up to the left
+    c = col - 1
+    for r in range(row - 1, -1, -1):
+        if c < 0:
+            break
+        board[r][c]
+        c -= 1
+    # X out all spots diagonally up to the right
+    c = col + 1
+    for r in range(row - 1, -1, -1):
+        if c >= len(board):
+            break
+        board[r][c] = "x"
+        c += 1
+    # X out all spots diagonally down to the left
+    c = col - 1
+    for r in range(row + 1, len(board)):
+        if c < 0:
+            break
+        board[r][c] = "x"
+        c -= 1
 
-    # Returns number of attacking pairs of queen
-    def queen_attacks(self):
 
-        def range_between(a, b):
-            if a > b:
-                return range(a - 1, b, -1)
-            elif a < b:
-                return range(a + 1, b)
-            else:
-                return [a]
+def recursive_solve(board, row, queens, solutions):
+    """Recursively solve an N-queens puzzle.
+    Args:
+        board (list): The current working chessboard.
+        row (int): The current working row.
+        queens (int): The current number of placed queens.
+        solutions (list): A list of lists of solutions.
+    Returns:
+        solutions
+    """
+    if queens == len(board):
+        solutions.append(get_solution(board))
+        return (solutions)
 
-        def zip_repeat(a, b):
-            if len(a) == 1:
-                a = a * len(b)
-            elif len(b) == 1:
-                b = b * len(a)
-            return zip(a, b)
+    for c in range(len(board)):
+        if board[row][c] == " ":
+            tmp_board = board_deepcopy(board)
+            tmp_board[row][c] = "Q"
+            xout(tmp_board, row, c)
+            solutions = recursive_solve(tmp_board, row + 1,
+                                        queens + 1, solutions)
 
-        # Finds all the points in between two points
-        def points_between(a, b):
-            return zip_repeat(list(range_between(a[0], b[0])), list(range_between(a[1], b[1])))
+    return (solutions)
 
-        # Checks if the two pair of coordinates(2 queens) are attacking each other or not,
-        # also checks if there are queens in between which are also in attacking position
-        # Returns True/False
-        def is_attacking(queens, a, b):
-            if (a[0] == b[0]) or (a[1] == b[1]) or (abs(a[0] - b[0]) == abs(a[1] - b[1])):
-                for between in points_between(a, b):
-                    if between in queens:
-                        return False
-                return True
-            else:
-                return False
 
-        attacking_pairs = []
-        queen_positions = list(self.queen_positions)
-        left_to_check = deepcopy(queen_positions)
-        while left_to_check:
-            a = left_to_check.pop()
-            for b in left_to_check:
-                if is_attacking(queen_positions, a, b):
-                    attacking_pairs.append([a, b])
-        # Returns length of all the attacking pairs
-        return len(attacking_pairs)
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: nqueens N")
+        sys.exit(1)
+    if sys.argv[1].isdigit() is False:
+        print("N must be a number")
+        sys.exit(1)
+    if int(sys.argv[1]) < 4:
+        print("N must be at least 4")
+        sys.exit(1)
 
-    def __str__(self):
-        return '\n'.join([' '.join(['.' if (col, row) not in self.queen_positions else 'Q' for col in range(
-            self.side_length)]) for row in range(self.side_length)])
-
-# Initializing the N queen problem
-class QueensProblem:
-
-    def __init__(self, start_state=None):
-        if not start_state:
-            start_state = QueensState()
-        self.start_state = start_state
-
-    # Goal is reached if no queen is attacking each other
-    def goal_test(self, state):
-        return state.queen_attacks() == 0
-
-    # Calculating heuristic by checking how many queens are attacked by each other
-    def Calculate_heuristic(self, state):
-        return state.queen_attacks()
+    board = init_board(int(sys.argv[1]))
+    solutions = recursive_solve(board, 0, 0, [])
+    for sol in solutions:
+        print(sol)
