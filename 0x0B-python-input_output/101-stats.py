@@ -1,41 +1,51 @@
 #!/usr/bin/python3
-"""Log parsing script."""
-import sys
-
-total_size = 0
-codes = {'200': 0, '301': 0, '400': 0, '401': 0,
-         '403': 0, '404': 0, '405': 0, '500': 0}
-iteration = 0
+"""
+Reads from standard input and computes metrics
+"""
 
 
-def print_stats():
-    """Function that prints a resume of the stats."""
-    print("File size: {}".format(total_size))
-    for k, v in sorted(codes.items()):
-        if v is not 0:
-            print("{}: {}".format(k, v))
+if __name__ == "__main__":
+    import sys
 
+    stdin = sys.stdin
 
-try:
-    for line in sys.stdin:
-        line = line.split()
-        if len(line) >= 2:
-            tmp = iteration
-            if line[-2] in codes:
-                codes[line[-2]] += 1
-                iteration += 1
+    c = 0
+    size = 0
+    vd = ['200', '301', '400', '401', '403', '404', '405', '500']
+    st = {}
+
+    try:
+        for line in stdin:
+            if c == 10:
+                print("File size: {}".format(size))
+                for i in sorted(st):
+                    print("{}: {}".format(i, st[i]))
+                c = 1
+            else:
+                c = c + 1
+
+            line = line.split()
+
             try:
-                total_size += int(line[-1])
-                if tmp == iteration:
-                    iteration += 1
-            except:
-                if tmp == iteration:
-                    continue
+                size = size + int(line[-1])
+            except (IndexError, ValueError):
+                pass
 
-        if iteration % 10 == 0:
-            print_stats()
+            try:
+                if line[-2] in vd:
+                    if st.get(line[-2], -1) == -1:
+                        st[line[-2]] = 1
+                    else:
+                        st[line[-2]] = st[line[-2]] + 1
+            except IndexError:
+                pass
 
-    print_stats()
+        print("File size: {}".format(size))
+        for i in sorted(st):
+            print("{}: {}".format(i, st[i]))
 
-except KeyboardInterrupt:
-    print_stats()
+    except KeyboardInterrupt:
+        print("File size: {}".format(size))
+        for i in sorted(st):
+            print("{}: {}".format(i, st[i]))
+        raise
